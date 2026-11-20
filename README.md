@@ -1,129 +1,86 @@
 # GitHub Profile Analyzer API
 
-A simple Node.js + Express API that fetches public GitHub profile data using the GitHub API and stores it in a MySQL database.
+> **Node.js & Express RESTful microservice that aggregates GitHub developer profiles, computes public repo metrics, and handles idempotent persistence with MySQL.**
 
-## Features
-
-* Fetch GitHub user profile using username
-* Store user insights in MySQL
-* Update existing users automatically
-* Fetch all stored users
-* Fetch a single stored user
-* REST API architecture
-* Environment variable support using `.env`
+[![Node.js](https://img.shields.io/badge/Node.js-339933?style=flat-square&logo=nodedotjs&logoColor=white)](https://nodejs.org/)
+[![Express](https://img.shields.io/badge/Express-000000?style=flat-square&logo=express&logoColor=white)](https://expressjs.com/)
+[![MySQL](https://img.shields.io/badge/MySQL-4479A1?style=flat-square&logo=mysql&logoColor=white)](https://www.mysql.com/)
+[![REST API](https://img.shields.io/badge/REST-API-blue?style=flat-square)](https://restfulapi.net/)
 
 ---
 
-## Tech Stack
+## 📌 Why I Built This
 
-* Node.js
-* Express.js
-* MySQL
-* mysql2
-* GitHub Public API
-* dotenv
+I built this service to explore backend data synchronization between third-party external APIs (GitHub REST API v3) and relational databases:
+- **Upsert / Idempotent Ingestion**: Handles automatic insertion of new developer profiles or updating existing records (`ON DUPLICATE KEY UPDATE` / conditional upsert) to prevent stale metrics.
+- **Relational Schema**: Normalizes developer handles, repo counts, follower metrics, and timestamps in MySQL for fast querying.
+- **Clean REST Design**: Predictable endpoints for on-demand profile scraping, batch listing, and individual record retrieval.
 
 ---
 
-# API Endpoints
+## 🏗️ System Flow
 
-## Home Route
-
-```http
-GET /
+```mermaid
+flowchart LR
+    Client[Client / Frontend] -->|GET /api/fetch/:username| API[Express API Service]
+    API -->|Fetch Public JSON| GitHub[GitHub REST API]
+    GitHub -->|User Profile Data| API
+    API -->|Upsert Record| MySQL[(MySQL Database: users)]
+    MySQL -->|Persisted Record| API
+    API -->|JSON Response| Client
 ```
 
-Response:
+---
 
+## 🔌 API Endpoints
+
+| Method | Endpoint | Description |
+| :--- | :--- | :--- |
+| `GET` | `/` | Health check (`"API is running..."`) |
+| `GET` | `/api/fetch/:username` | Fetches live profile from GitHub, upserts into MySQL, and returns record |
+| `GET` | `/api/fetch-all` | Lists all cached GitHub user profiles in the database |
+| `GET` | `/api/fetch-user/:username` | Retrieves a single stored developer profile directly from MySQL |
+
+### Example Payload (`GET /api/fetch/octocat`)
 ```json
-API is running...
+{
+  "username": "octocat",
+  "name": "The Octocat",
+  "followers": 15200,
+  "following": 9,
+  "publicRepos": 8,
+  "avatar": "https://avatars.githubusercontent.com/u/583231?v=4",
+  "bio": "GitHub mascot",
+  "accountCreated": "2011-01-25"
+}
 ```
 
 ---
 
-## Fetch GitHub User
+## 🛠️ Tech Stack
 
-```http
-GET /api/fetch/:username
-```
-
-Example:
-
-```http
-GET /api/fetch/octocat
-```
-
-This endpoint:
-
-* Fetches data from GitHub API
-* Stores data in MySQL
-* Updates existing record if user already exists
+- **Runtime**: Node.js (ES Modules)
+- **Framework**: Express.js
+- **Database Driver**: `mysql2/promise` (connection pooling & prepared statements)
+- **Database**: MySQL 8.0+
 
 ---
 
-## Fetch All Users
+## 🚀 Quickstart & Local Setup
 
-```http
-GET /api/fetch-all
-```
-
----
-
-## Fetch Single User From Database
-
-```http
-GET /api/fetch-user/:username
-```
-
-Example:
-
-```http
-GET /api/fetch-user/octocat
-```
-
----
-
-# Project Setup
-
-## 1. Clone Repository
-
+### 1. Clone & Install
 ```bash
-git clone https://github.com/YOUR_USERNAME/YOUR_REPOSITORY_NAME.git
-```
-
-Move into the project folder:
-
-```bash
-cd YOUR_REPOSITORY_NAME
-```
-
----
-
-## 2. Install Dependencies
-
-```bash
+git clone https://github.com/V-Rytham/GitHub-Profile-Analyzer-API.git
+cd GitHub-Profile-Analyzer-API
 npm install
 ```
 
----
-
-## 3. Create MySQL Database
-
-Create database:
-
+### 2. Configure Database & Environment
+In MySQL, initialize your database and table:
 ```sql
-CREATE DATABASE testdb;
-```
+CREATE DATABASE github_analyzer;
+USE github_analyzer;
 
-Use database:
-
-```sql
-USE testdb;
-```
-
-Create table:
-
-```sql
 CREATE TABLE users (
     id INT AUTO_INCREMENT PRIMARY KEY,
     username VARCHAR(255) UNIQUE,
@@ -137,77 +94,30 @@ CREATE TABLE users (
 );
 ```
 
----
-
-## 4. Create `.env` File
-
 Create a `.env` file in the root directory:
-
-```env
+```ini
 PORT=8000
-
 DB_HOST=localhost
 DB_USER=root
-DB_PASSWORD=your_password
-DB_NAME=testdb
+DB_PASSWORD=your_mysql_password
+DB_NAME=github_analyzer
 ```
 
----
-
-## 5. Start Server
-
-Using Node:
-
+### 3. Start the Server
 ```bash
-npm start
-```
+# Production mode
+node app.js
 
-Using Nodemon:
-
-```bash
+# Or development with live reload
 npm run dev
 ```
 
-Server will run at:
-
-```bash
-http://localhost:8000
-```
+The API will listen at: `http://localhost:8000`
 
 ---
 
-# Example Response
+## 🧑‍💻 Author
 
-```json
-{
-  "username": "octocat",
-  "name": "The Octocat",
-  "followers": 100,
-  "following": 5,
-  "publicRepos": 8,
-  "avatar": "https://...",
-  "bio": "GitHub mascot",
-  "accountCreated": "2011-01-25"
-}
-```
-
----
-
-# Folder Structure
-
-```bash
-project/
-│
-├── node_modules/
-├── .env
-├── .gitignore
-├── package.json
-├── package-lock.json
-├── server.js
-```
-
----
-
-# License
-
-MIT License
+**Rytham Maalpani**  
+- Final Year Computer Science Undergraduate  
+- GitHub: [@V-Rytham](https://github.com/V-Rytham)
